@@ -39,18 +39,7 @@ const GovernorTransfers: React.FC = () => {
     );
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status?.toUpperCase()) {
-      case "PENDING_GOVERNOR":
-        return <FaClock className="w-4 h-4 text-yellow-500" />;
-      case "APPROVED":
-        return <FaCheckCircle className="w-4 h-4 text-green-500" />;
-      case "REJECTED":
-        return <FaTimesCircle className="w-4 h-4 text-red-500" />;
-      default:
-        return <FaFileContract className="w-4 h-4 text-gray-500" />;
-    }
-  };
+
 
   const getStatusBadge = (status: string) => {
     switch (status?.toUpperCase()) {
