@@ -229,6 +229,7 @@ export interface GovernorCofOItem {
 }
 
 export interface GovernorCofODetail extends GovernorCofOItem {
+  cofO?: any;
   cofODocuments: CofODocument[];
   logs: any[];
   currentReviewer?: {

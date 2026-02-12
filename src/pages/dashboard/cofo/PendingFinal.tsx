@@ -30,7 +30,7 @@ const PendingFinal = () => {
           {!isLoading && pending.map(p => (
             <div key={p.id} className="flex justify-between items-center border-b border-gov-border py-3 cursor-pointer" onClick={() => navigate(`/dashboard/approvals/${p.id}`)}>
               <div>
-                <p className="font-semibold text-primary">{`${p.user?.firstName || ''} ${p.user?.lastName || ''}`.trim() || p.id}</p>
+                <p className="font-semibold text-primary">{p.user?.fullName || p.id}</p>
                 <p className="text-xs text-gov-text-light">Submitted: {new Date(p.createdAt).toLocaleDateString()}</p>
               </div>
               <div className="flex items-center gap-3">

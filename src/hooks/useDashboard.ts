@@ -283,5 +283,5 @@ export const useGovernorCofO = (id?: string | null) => {
     { revalidateOnFocus: false, dedupingInterval: 30000 }
   );
 
-  return { cofo: data?.cofO || null, error, isLoading, mutate };
+  return { cofo: data || null, error, isLoading, mutate };
 };
