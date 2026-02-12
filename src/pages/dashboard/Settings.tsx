@@ -9,24 +9,24 @@ const ReviewerSettings = () => {
     department: "Land Registration",
     position: "Level 1 Approver",
     signatureRequired: true,
-    signature: null,
+    signature: null as string | null,
   });
 
   const [loading, setLoading] = useState(false);
 
   // Handle Input Changes
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setUserData({ ...userData, [name]: value });
   };
 
   // Handle Signature Upload
-  const handleSignatureUpload = (e) => {
-    const file = e.target.files[0];
+  const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setUserData({ ...userData, signature: reader.result });
+        setUserData({ ...userData, signature: reader.result as string });
       };
       reader.readAsDataURL(file);
     }

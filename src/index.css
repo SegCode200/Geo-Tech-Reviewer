@@ -1,17 +1,101 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 :root {
   font-family: "Urbanist", sans-serif;
-  line-height: 1.5;
+  line-height: 1.6;
   font-weight: 400;
   font-style: normal;
   
-
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  
+  /* Government Color Variables */
+  --primary-color: #003366;
+  --secondary-color: #004B87;
+  --accent-color: #C5192D;
+  --light-bg: #F5F7FA;
+  --border-color: #D3D8DE;
+  --text-dark: #1A1A1A;
+  --text-light: #666666;
 }
 
+/* Government Style Base Styles */
+@layer base {
+  body {
+    @apply bg-gov-light text-gov-text;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-gov-text font-semibold;
+  }
+  
+  a {
+    @apply text-primary hover:text-secondary transition-colors;
+  }
+}
+
+/* Government Component Styles */
+@layer components {
+  .gov-button {
+    @apply px-6 py-3 rounded-gov font-medium text-white bg-primary hover:bg-secondary transition-colors shadow-gov hover:shadow-gov-lg;
+  }
+  
+  .gov-button-secondary {
+    @apply px-6 py-3 rounded-gov font-medium text-primary bg-transparent border-2 border-primary hover:bg-primary hover:text-white transition-colors;
+  }
+  
+  .gov-card {
+    @apply bg-white rounded-gov shadow-gov hover:shadow-gov-lg transition-shadow border border-gov-border;
+  }
+  
+  .gov-input {
+    @apply w-full px-4 py-3 rounded-gov border border-gov-border focus:border-primary focus:ring-2 focus:ring-primary/20 text-gov-text placeholder-gov-text-light transition-colors;
+  }
+  
+  .gov-label {
+    @apply block text-sm font-semibold text-gov-text mb-2;
+  }
+  
+  .gov-header {
+    @apply bg-primary text-white py-4 px-6 shadow-gov-lg border-b-4 border-accent;
+  }
+  
+  .gov-sidebar {
+    @apply bg-primary text-white h-screen fixed left-0 top-0 w-64 shadow-gov-lg;
+  }
+  
+  .gov-nav-item {
+    @apply px-6 py-3 flex items-center hover:bg-secondary transition-colors border-l-4 border-transparent hover:border-accent cursor-pointer text-white;
+  }
+  
+  .gov-nav-item.active {
+    @apply bg-secondary border-l-4 border-accent;
+  }
+}
+
+/* Utility Classes */
+.gov-badge {
+  @apply inline-block px-3 py-1 rounded-full text-sm font-semibold;
+}
+
+.gov-badge-success {
+  @apply bg-green-100 text-green-800;
+}
+
+.gov-badge-warning {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.gov-badge-danger {
+  @apply bg-red-100 text-red-800;
+}
+
+.gov-badge-info {
+  @apply bg-blue-100 text-blue-800;
+}
+
+  
