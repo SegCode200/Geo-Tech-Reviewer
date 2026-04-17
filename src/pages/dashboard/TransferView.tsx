@@ -11,7 +11,7 @@ import {
   FaInfoCircle,
 } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
-import { jwtDecode } from 'jwt-decode';
+// import { jwtDecode } from 'jwt-decode';
 import { selectUser } from '../../store/authSlice';
 import { useTransferForReview } from '../../hooks/useTransfers';
 import { reviewTransfer, approveDocument, rejectDocument } from '../../api/transferApi';
