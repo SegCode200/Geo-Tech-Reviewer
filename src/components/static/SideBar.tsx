@@ -14,8 +14,10 @@ const Sidebar = () => {
     { to: "/dashboard/user-management", label: "User Management", icon: <FaUsers className="w-5 h-5" /> },
   ];
 
-  // Add governor menu when user is governor
-  if (user?.role?.toLowerCase() === "governor") {
+  // Add role-specific transfer menu
+  if (user?.role?.toUpperCase() === "APPROVER") {
+    navItems.splice(2, 0, { to: "/dashboard/transfers", label: "Ownership Transfers", icon: <FaFileContract className="w-5 h-5" /> });
+  } else if (user?.role?.toUpperCase() === "GOVERNOR") {
     navItems.splice(3, 0, { to: "/dashboard/governor/transfers", label: "Governor Transfers", icon: <FaFileContract className="w-5 h-5" /> });
   }
 

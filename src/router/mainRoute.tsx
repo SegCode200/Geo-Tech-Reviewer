@@ -17,6 +17,8 @@ import PendingFinal from "../pages/dashboard/cofo/PendingFinal";
 import Approved from "../pages/dashboard/cofo/Approved";
 import CofoView from "../pages/dashboard/cofo/CofoView";
 import Reports from "../pages/dashboard/Reports";
+import Transfers from "../pages/dashboard/Transfers";
+import TransferView from "../pages/dashboard/TransferView";
 
 // Layout Component with Sidebar
 
@@ -57,6 +59,8 @@ const mainRoute = createBrowserRouter([
       { path: "cofo/approved", element: <Approved /> },
       { path: "cofo/:id", element: <CofoView /> },
       { path: "approvals/:id", element: <ApprovalReview /> },
+      { path: "transfers", element: <Transfers /> },
+      { path: "transfers/:transferId", element: <TransferView /> },
       { path: "governor/transfers", element: <GovernorTransfers /> },
       { path: "governor/transfers/:id", element: <GovernorTransferView /> },
       { path: "reports", element: <Reports /> },

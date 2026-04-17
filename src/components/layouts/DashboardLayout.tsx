@@ -15,6 +15,7 @@ export const Layout = () => {
 
   const reviewerNav = [
     { path: "/dashboard", label: "Dashboard", icon: <FaTachometerAlt className="w-5 h-5" /> },
+    { path: "/dashboard/transfers", label: "Ownership Transfers", icon: <FaFileContract className="w-5 h-5" /> },
     { path: "/dashboard/cofo/inbox", label: "Inbox", icon: <FaClipboardList className="w-5 h-5" /> },
     { path: "/dashboard/cofo/applications", label: "All Applications", icon: <FaClipboardList className="w-5 h-5" /> },
   ];
