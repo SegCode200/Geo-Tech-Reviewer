@@ -5,6 +5,10 @@ const API_URL = "https://geo-tech-backend.onrender.com/api";
 const api = axios.create({
   baseURL: API_URL,
   withCredentials: true,
+  headers: { 
+    "Content-Type": "application/json",
+    // Don't set Authorization header here - set it dynamically via setAccessToken
+  },
 });
 
 // Interfaces based on backend code
@@ -145,7 +149,7 @@ export interface TransferListItem {
 
 // API Functions
 export const getTransfersForReview = async (): Promise<{ transfers: TransferListItem[] }> => {
-  const res = await api.get("/ownership/for-review");
+  const res = await api.get("/internal-users/for-review");
   return res.data;
 };
 
@@ -155,31 +159,31 @@ export const reviewTransfer = async (data: {
   message?: string;
   signatureUrl?: string;
 }) => {
-  const res = await api.post(`/ownership/${data.transferId}/review`, data);
+  const res = await api.post(`/internal-users/${data.transferId}/review`, data);
   return res.data;
 };
 
 export const getTransferForReview = async (transferId: string): Promise<{ transfer: Transfer }> => {
-  const res = await api.get(`/ownership/${transferId}/review`);
+  const res = await api.get(`/internal-users/${transferId}/review`);
   return res.data;
 };
 
 export const rejectOwnershipTransfer = async (transferId: string, reason: string) => {
-  const res = await api.post(`/ownership/${transferId}/reject`, { reason });
+  const res = await api.post(`/internal-users/${transferId}/reject`, { reason });
   return res.data;
 };
 
 export const approveOwnershipTransfer = async (transferId: string) => {
-  const res = await api.post(`/ownership/${transferId}/approve`);
+  const res = await api.post(`/internal-users/${transferId}/approve`);
   return res.data;
 };
 
 export const approveDocument = async (documentId: string) => {
-  const res = await api.post(`/ownership/document/${documentId}/approve`);
+  const res = await api.post(`/internal-users/document/${documentId}/approve`);
   return res.data;
 };
 
 export const rejectDocument = async (documentId: string, reason: string) => {
-  const res = await api.post(`/ownership/document/${documentId}/reject`, { reason });
+  const res = await api.post(`/internal-users/document/${documentId}/reject`, { reason });
   return res.data;
 };

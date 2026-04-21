@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import Alert from "../../components/Alert";
 
 const ReviewerSettings = () => {
   const [userData, setUserData] = useState({
@@ -37,10 +38,10 @@ const ReviewerSettings = () => {
     setLoading(true);
     try {
       await axios.post("/api/reviewer/settings", userData);
-      alert("Settings saved successfully!");
+      Alert.success("Settings Saved", "Settings saved successfully!");
     } catch (error) {
       console.error("Error saving settings:", error);
-      alert("Failed to save settings. Please try again.");
+      Alert.error("Save Failed", "Failed to save settings. Please try again.");
     }
     setLoading(false);
   };

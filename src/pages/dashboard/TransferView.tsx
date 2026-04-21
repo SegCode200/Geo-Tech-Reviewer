@@ -11,10 +11,10 @@ import {
   FaInfoCircle,
 } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
-// import { jwtDecode } from 'jwt-decode';
 import { selectUser } from '../../store/authSlice';
 import { useTransferForReview } from '../../hooks/useTransfers';
 import { reviewTransfer, approveDocument, rejectDocument } from '../../api/transferApi';
+import Alert from '../../components/Alert';
 
 const parseDocumentUrl = (url: string) => {
   if (!url || typeof url !== 'string') return null;
@@ -68,18 +68,17 @@ const TransferView = () => {
   const { transferId } = useParams<{ transferId: string }>();
   const navigate = useNavigate();
   const user = useSelector(selectUser);
+  const currentUserId = user?.id;
   const { transfer, isLoading, error, mutate } = useTransferForReview(transferId || null);
   const [reviewAction, setReviewAction] = useState<'APPROVE' | 'REJECT' | null>(null);
   const [reviewMessage, setReviewMessage] = useState('');
   const [signatureUrl, setSignatureUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  console.log(user)
-  const getDocumentStatus = (doc: any) => {
 
-    console.log(doc.reviews?.[0]?.reviewerId, user?.id);
-    if (!user) return doc.status || 'PENDING';
-    const userReview = doc.reviews?.find((review: any) => review.reviewerId === user.id);
+  const getDocumentStatus = (doc: any) => {
+    if (!currentUserId) return doc.status || 'PENDING';
+    const userReview = doc.reviews?.find((review: any) => review.reviewerId === currentUserId);
 
     // console.log(do)
     if (userReview) {
@@ -92,8 +91,8 @@ const TransferView = () => {
   };
 
   const canReviewDocument = (doc: any) => {
-    if (!user) return false;
-    const userReview = doc.reviews?.find((review: any) => review.reviewerId === user.id);
+    if (!currentUserId) return false;
+    const userReview = doc.reviews?.find((review: any) => review.reviewerId === currentUserId);
     if (userReview) return false;
     return doc.status !== 'REJECTED';
   };
@@ -101,6 +100,22 @@ const TransferView = () => {
 
   const handleReview = async () => {
     if (!transfer || !reviewAction) return;
+
+    if (reviewAction === 'APPROVE') {
+      // Check if all documents are approved
+      const allDocumentsApproved = transfer.documents?.every(doc => doc.status === 'APPROVED');
+      if (!allDocumentsApproved) {
+        Alert.error("Cannot Approve Transfer", "All documents must be approved before approving the transfer. Please ensure no documents are pending or rejected.");
+        return;
+      }
+    } else if (reviewAction === 'REJECT') {
+      // Check if there are any pending documents
+      const hasPendingDocuments = transfer.documents?.some(doc => doc.status === 'PENDING');
+      if (hasPendingDocuments) {
+        Alert.error("Cannot Reject Transfer", "Cannot reject transfer while documents are still pending review. All documents must be either approved or rejected.");
+        return;
+      }
+    }
 
     setSubmitting(true);
     try {
@@ -114,7 +129,7 @@ const TransferView = () => {
       navigate('/dashboard/transfers');
     } catch (err) {
       console.error('Review failed:', err);
-      alert('Review failed. Please try again.');
+      Alert.error('Review Failed', 'Review failed. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -130,7 +145,7 @@ const TransferView = () => {
       mutate();
     } catch (err) {
       console.error('Document action failed:', err);
-      alert('Action failed. Please try again.');
+      Alert.error('Action Failed', 'Action failed. Please try again.');
     }
   };
 

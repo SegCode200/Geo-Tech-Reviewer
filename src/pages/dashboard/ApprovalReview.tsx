@@ -13,11 +13,11 @@ import {
   FaMapMarkerAlt,
   FaEye,
 } from "react-icons/fa";
-import Swal from "sweetalert2";
 import { useCofOForReview } from "../../hooks/useApprovals";
 import DocumentViewer from "../../components/DocumentViewer";
 import { submitApprovalDecision, updateCofODocumentStatus } from "../../api/approvalsApi";
 import { CofODocument } from "../../api/approvalsApi"; // for typing
+import Alert from "../../components/Alert";
 
 
 
@@ -46,46 +46,41 @@ const ApprovalReview = () => {
     setDocActionLoading(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], approve: true } }));
     try {
       await updateCofODocumentStatus(doc.id, "APPROVED");
-      Swal.fire({ icon: "success", title: "Document Approved", text: `${doc.title} has been approved.` });
+      Alert.success("Document Approved", `${doc.title} has been approved.`);
       await mutate?.();
     } catch (error) {
       console.error(error);
-      Swal.fire({ icon: "error", title: "Error", text: "Error approving document. Please try again." });
+      Alert.error("Error", "Error approving document. Please try again.");
     } finally {
       setDocActionLoading(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], approve: false } }));
     }
   };
 
-  const handleRejectDocument = (doc: CofODocument) => {
-    Swal.fire({
+  const handleRejectDocument = async (doc: CofODocument) => {
+    const reason = await Alert.prompt({
       title: `Reject ${doc.title}?`,
-      input: "textarea",
+      text: "Enter reason for rejecting this document...",
       inputPlaceholder: "Enter reason for rejecting this document...",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#EF4444",
-      cancelButtonColor: "#10B981",
+      inputType: "textarea",
       confirmButtonText: "Yes, Reject",
-      inputAttributes: {
-        "aria-label": "Rejection reason",
-      },
-    }).then(async (result) => {
-      if (result.isConfirmed && result.value) {
-        setDocActionLoading(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], reject: true } }));
-        try {
-          console.log(result.value)
-          await updateCofODocumentStatus(doc.id, "REJECTED", result.value);
-          
-          // If any document is rejected, take the application as Send Back
-          Swal.fire({ icon: "success", title: "Document Rejected", text: `${doc.title} has been rejected and application sent back.` }).then(() => navigate(-1));
-        } catch (error) {
-          console.error(error);
-          Swal.fire({ icon: "error", title: "Error", text: "Error rejecting document. Please try again." });
-        } finally {
-          setDocActionLoading(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], reject: false } }));
-        }
-      }
+      cancelButtonText: "Cancel",
+      type: "warning"
     });
+
+    if (reason) {
+      setDocActionLoading(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], reject: true } }));
+      try {
+        await updateCofODocumentStatus(doc.id, "REJECTED", reason);
+        
+        // If any document is rejected, take the application as Send Back
+        Alert.success("Document Rejected", `${doc.title} has been rejected and application sent back.`).then(() => navigate(-1));
+      } catch (error) {
+        console.error(error);
+        Alert.error("Error", "Error rejecting document. Please try again.");
+      } finally {
+        setDocActionLoading(prev => ({ ...prev, [doc.id]: { ...prev[doc.id], reject: false } }));
+      }
+    }
   };
 
   const anyRejected = application?.cofODocuments?.some((d: any) => (d.status || "PENDING") === "REJECTED");
@@ -96,20 +91,20 @@ const ApprovalReview = () => {
 
   const handleApprove = async () => {
     if (anyRejected) {
-      Swal.fire({ icon: "error", title: "Cannot Approve", text: "One or more documents have been rejected. Please resolve before approving." });
+      Alert.error("Cannot Approve", "One or more documents have been rejected. Please resolve before approving.");
       return;
     }
 
     if (anyPending) {
-      const confirm = await Swal.fire({
+      const confirmed = await Alert.confirm({
         title: "Some documents are still pending",
         text: "Do you want to proceed to approve the application anyway?",
-        icon: "question",
-        showCancelButton: true,
         confirmButtonText: "Yes, Approve",
+        cancelButtonText: "Cancel",
+        type: "warning"
       });
 
-      if (!confirm.isConfirmed) return;
+      if (!confirmed) return;
     }
 
     setIsApprovingLoading(true);
@@ -117,7 +112,7 @@ const ApprovalReview = () => {
       // If current user is governor require plotNumber
       if (user?.role?.toLowerCase() === "governor") {
         if (!plotNumber || !plotNumber.trim()) {
-          Swal.fire({ icon: "error", title: "Missing Plot Number", text: "Please provide the plot number before approving." });
+          Alert.error("Missing Plot Number", "Please provide the plot number before approving.");
           setIsApprovingLoading(false);
           return;
         }
@@ -125,93 +120,68 @@ const ApprovalReview = () => {
       } else {
         await submitApprovalDecision(id!, { action: "APPROVE", message: notes });
       }
-      Swal.fire({ icon: "success", title: "Approved!", text: "Application has been approved." }).then(() => {
+      Alert.success("Approved!", "Application has been approved.").then(() => {
         navigate(-1);
       });
     } catch (error) {
       console.log(error);
-      Swal.fire({ icon: "error", title: "Error", text: "There was an error approving the application. Please try again." });
+      Alert.error("Error", "There was an error approving the application. Please try again.");
     } finally {
       setIsApprovingLoading(false);
     }
   };
 
-  const handleReject = () => {
-    Swal.fire({
+  const handleReject = async () => {
+    const reason = await Alert.prompt({
       title: "Reject Application?",
-      input: "textarea",
+      text: "Enter reason for rejection...",
       inputPlaceholder: "Enter reason for rejection...",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#EF4444",
-      cancelButtonColor: "#10B981",
+      inputType: "textarea",
       confirmButtonText: "Yes, Reject",
-      inputAttributes: {
-        "aria-label": "Rejection reason",
-      },
-    }).then(async (result) => {
-      if (result.isConfirmed && result.value) {
-        setIsRejectingLoading(true);
-        try {
-          await submitApprovalDecision(id!, { action: "REJECT", message: result.value });
-          Swal.fire({
-            icon: "success",
-            title: "Rejected!",
-            text: "Application has been rejected.",
-          }).then(() => {
-            navigate(-1);
-          });
-        } catch (error) {
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "There was an error rejecting the application. Please try again.",
-          });
-        } finally {
-          setIsRejectingLoading(false);
-        }
-      }
+      cancelButtonText: "Cancel",
+      type: "warning"
     });
+
+    if (reason) {
+      setIsRejectingLoading(true);
+      try {
+        await submitApprovalDecision(id!, { action: "REJECT", message: reason });
+        Alert.success("Rejected!", "Application has been rejected.").then(() => {
+          navigate(-1);
+        });
+      } catch (error) {
+        Alert.error("Error", "There was an error rejecting the application. Please try again.");
+      } finally {
+        setIsRejectingLoading(false);
+      }
+    }
   };
 
-  const handleSendBackForCorrection = () => {
-    Swal.fire({
+  const handleSendBackForCorrection = async () => {
+    const correctionDetails = await Alert.prompt({
       title: "Send Back for Correction?",
-      input: "textarea",
+      text: "Enter what needs to be corrected...",
       inputPlaceholder: "Enter what needs to be corrected...",
-      icon: "info",
-      showCancelButton: true,
-      confirmButtonColor: "#F59E0B",
-      cancelButtonColor: "#10B981",
+      inputType: "textarea",
       confirmButtonText: "Yes, Send Back",
-      inputAttributes: {
-        "aria-label": "Correction details",
-      },
-    }).then(async (result) => {
-      if (result.isConfirmed && result.value) {
-        setIsSendingBackLoading(true);
-        try {
-          await submitApprovalDecision(id!, { action: "REJECT", message: result.value });
-          Swal.fire({
-            icon: "success",
-            title: "Sent Back!",
-            text: "Application has been sent back for corrections.",
-          }).then(() => {
-            navigate(-1);
-          });
-        } catch (error) {
-
-          console.log(error)
-          Swal.fire({
-            icon: "error",
-            title: "Error",
-            text: "There was an error sending back the application. Please try again.",
-          });
-        } finally {
-          setIsSendingBackLoading(false);
-        }
-      }
+      cancelButtonText: "Cancel",
+      type: "info"
     });
+
+    if (correctionDetails) {
+      setIsSendingBackLoading(true);
+      try {
+        await submitApprovalDecision(id!, { action: "REJECT", message: correctionDetails });
+        Alert.success("Sent Back!", "Application has been sent back for corrections.").then(() => {
+          navigate(-1);
+        });
+      } catch (error) {
+        console.log(error);
+        Alert.error("Error", "There was an error sending back the application. Please try again.");
+      } finally {
+        setIsSendingBackLoading(false);
+      }
+    }
   };
 
   if (isLoading) {
@@ -466,11 +436,7 @@ const ApprovalReview = () => {
                   setIsSavingNotes(true);
                   try {
                     await new Promise(resolve => setTimeout(resolve, 500));
-                    Swal.fire({
-                      icon: "success",
-                      title: "Notes Saved!",
-                      text: "Your review notes have been saved.",
-                    });
+                    Alert.success("Notes Saved!", "Your review notes have been saved.");
                   } finally {
                     setIsSavingNotes(false);
                   }

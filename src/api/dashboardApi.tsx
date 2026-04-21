@@ -298,32 +298,33 @@ export const listTransfersForGovernor = async (): Promise<{
   summary: { total: number; pending: number; approved: number; rejected: number };
   transfers: { pending: GovernorTransfer[]; approved: GovernorTransfer[]; rejected: GovernorTransfer[]; all: GovernorTransfer[] };
 }> => {
-  const res = await api.get("/ownership/governor/list");
+  const res = await api.get("/internal-users/governor/list");
   return res.data;
 };
 
 export const getTransferForReview = async (transferId: string): Promise<{ transfer: GovernorTransfer }> => {
-  const res = await api.get(`/ownership/governor/review/${transferId}`);
+  const res = await api.get(`/internal-users/${transferId}/review`);
+  console.log(res)
   return res.data;
 };
 
 export const approveOwnershipTransfer = async (transferId: string, governorComment?: string) => {
-  const res = await api.post(`/ownership/${transferId}/approve`, { governorComment });
+  const res = await api.post(`/internal-users/${transferId}/approve`, { governorComment });
   return res.data;
 };
 
 export const rejectOwnershipTransfer = async (transferId: string, rejectionReason: string, governorComment?: string) => {
-  const res = await api.post(`/ownership/${transferId}/reject`, { rejectionReason, governorComment });
+  const res = await api.post(`/internal-users/${transferId}/reject`, { rejectionReason, governorComment });
   return res.data;
 };
 
 // Governor Document Approval/Rejection
 export const approveDocument = async (documentId: string) => {
-  const res = await api.post(`/ownership/document/${documentId}/approve`);
+  const res = await api.post(`/internal-users/document/${documentId}/approve`);
   return res.data;
 };
 
 export const rejectDocument = async (documentId: string, rejectionMessage: string) => {
-  const res = await api.post(`/ownership/document/${documentId}/reject`, { rejectionMessage });
+  const res = await api.post(`/internal-users/document/${documentId}/reject`, { rejectionMessage });
   return res.data;
 };

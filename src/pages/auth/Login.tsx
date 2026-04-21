@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { FaEye, FaEyeSlash, FaShieldAlt } from "react-icons/fa";
-import Swal from "sweetalert2";
 import useLoginStore from "../../store/useLoginStore";
 import { useDispatch } from "react-redux";
 import { AppDispatch } from "../../store/store";
 import { useNavigate } from "react-router-dom";
 import { login } from "../../global/authActions";
+import Alert from "../../components/Alert";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -30,20 +30,12 @@ const Login = () => {
     }
     try {
       await dispatch(login(email, password));
-      Swal.fire({
-        icon: "success",
-        title: "Login Successful",
-        text: "You have been logged in successfully.",
-      }).then(() => {
+      Alert.success("Login Successful", "You have been logged in successfully.").then(() => {
         setIsloading(false);
         navigate("/dashboard");
       });
     } catch (err: any) {
-      Swal.fire({
-        icon: "error",
-        title: "Login Failed",
-        text: err || "An error occurred during login.",
-      });
+      Alert.error("Login Failed", err || "An error occurred during login.");
       setIsloading(false);
     }
     resetForm();

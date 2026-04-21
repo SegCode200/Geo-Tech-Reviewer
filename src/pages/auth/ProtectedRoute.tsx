@@ -1,9 +1,10 @@
 import type { RootState } from "../../store/store";
 import { useEffect, ReactNode, useState } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { Navigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { refreshSession } from "../../api/authApi";
+import { setUser } from "../../store/authSlice";
 import { Spin } from "antd";
 
 interface ProtectedRouteProps {
@@ -15,31 +16,31 @@ const ProtectAdmin = ({ children }: ProtectedRouteProps): ReactNode => {
   const [isValidating, setIsValidating] = useState(true);
   const [isValid, setIsValid] = useState(false);
 
+  const dispatch = useDispatch();
+
   useEffect(() => {
     const validateToken = async () => {
       try {
         // Call refresh endpoint to validate token on backend
         // The httpOnly cookie will be sent automatically
-        await refreshSession();
+        const data = await refreshSession();
+        dispatch(setUser(data.user));
         setIsValid(true);
-        setIsValidating(false);
       } catch (error) {
         Swal.fire({
           icon: "error",
           title: "Session Expired",
           text: "Your session has expired. Please log in again.",
         });
+        dispatch(setUser(null));
         setIsValid(false);
+      } finally {
         setIsValidating(false);
       }
     };
 
-    if (user) {
-      validateToken();
-    } else {
-      setIsValidating(false);
-    }
-  }, [user]);
+    validateToken();
+  }, [dispatch]);
 
   // While validating, show nothing or a loading state
   if (isValidating) {

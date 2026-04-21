@@ -1,22 +1,22 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { selectUser } from "../../../store/authSlice";
+import { useTransferForReview } from "../../../hooks/useTransfers";
 import {
-  getTransferForReview,
   approveOwnershipTransfer,
   rejectOwnershipTransfer,
   approveDocument,
   rejectDocument,
 } from "../../../api/dashboardApi";
-import { FaArrowLeft, FaCheckCircle, FaTimesCircle, FaFileAlt, FaMapMarkerAlt, FaUser, FaCalendar, FaRuler, FaEye, FaFilePdf, FaFileImage, FaTimes } from "react-icons/fa";
+import { FaArrowLeft, FaCheckCircle, FaTimesCircle, FaFileAlt, FaMapMarkerAlt, FaUser, FaCalendar, FaRuler, FaEye, FaFilePdf, FaFileImage, FaTimes, FaMap } from "react-icons/fa";
+import Alert from "../../../components/Alert";
 
 const GovernorTransferView: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const user = useSelector(selectUser);
-  const [loading, setLoading] = useState(true);
-  const [transfer, setTransfer] = useState<any>(null);
+  const { transfer, isLoading, error, mutate } = useTransferForReview(id || null);
   const [submitting, setSubmitting] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -26,25 +26,6 @@ const GovernorTransferView: React.FC = () => {
   const [previewDoc, setPreviewDoc] = useState<any>(null);
   const [docActionModal, setDocActionModal] = useState<{ type: "approve" | "reject"; docId: string; docTitle: string } | null>(null);
   const [docRejectMessage, setDocRejectMessage] = useState("");
-
-  useEffect(() => {
-    const load = async () => {
-      if (!id) return;
-      setLoading(true);
-      try {
-        const res = await getTransferForReview(id);
-        console.log(res)
-        setTransfer(res.transfer);
-      } catch (err) {
-        console.error(err);
-        alert("Failed to load transfer");
-        navigate(-1);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [id, navigate]);
 
   if (user?.role?.toLowerCase() !== "governor") {
     return (
@@ -59,14 +40,22 @@ const GovernorTransferView: React.FC = () => {
 
   const handleApprove = async () => {
     if (!id) return;
+
+    // Check if all documents are approved
+    const allDocumentsApproved = transfer?.documents?.every(doc => doc.status === "APPROVED");
+    if (!allDocumentsApproved) {
+      Alert.error("Cannot Approve Transfer", "All documents must be approved before approving the transfer. Please ensure no documents are pending or rejected.");
+      return;
+    }
+
     try {
       setSubmitting(true);
       await approveOwnershipTransfer(id, approveComment || undefined);
-      alert("✓ Transfer approved successfully");
+      Alert.success("Transfer Approved", "Transfer approved successfully");
       navigate(-1);
     } catch (err) {
       console.error(err);
-      alert("Failed to approve transfer");
+      Alert.error("Approval Failed", "Failed to approve transfer");
     } finally {
       setSubmitting(false);
       setShowApproveModal(false);
@@ -75,17 +64,25 @@ const GovernorTransferView: React.FC = () => {
 
   const handleReject = async () => {
     if (!id || !rejectReason.trim()) {
-      alert("Please provide a rejection reason");
+      Alert.warning("Validation Error", "Please provide a rejection reason");
       return;
     }
+
+    // Check if there are any pending documents
+    const hasPendingDocuments = transfer?.documents?.some(doc => doc.status === "PENDING");
+    if (hasPendingDocuments) {
+      Alert.error("Cannot Reject Transfer", "Cannot reject transfer while documents are still pending review. All documents must be either approved or rejected.");
+      return;
+    }
+
     try {
       setSubmitting(true);
       await rejectOwnershipTransfer(id, rejectReason, rejectComment || undefined);
-      alert("✗ Transfer rejected successfully");
+      Alert.success("Transfer Rejected", "Transfer rejected successfully");
       navigate(-1);
     } catch (err) {
       console.error(err);
-      alert("Failed to reject transfer");
+      Alert.error("Rejection Failed", "Failed to reject transfer");
     } finally {
       setSubmitting(false);
       setShowRejectModal(false);
@@ -97,16 +94,12 @@ const GovernorTransferView: React.FC = () => {
     try {
       setSubmitting(true);
       await approveDocument(docActionModal.docId);
-      alert("✓ Document approved successfully");
+      Alert.success("Document Approved", "Document approved successfully");
       setDocActionModal(null);
-      // Reload transfer data
-      if (id) {
-        const res = await getTransferForReview(id);
-        setTransfer(res.transfer);
-      }
+      mutate();
     } catch (err) {
       console.error(err);
-      alert("Failed to approve document");
+      Alert.error("Approval Failed", "Failed to approve document");
     } finally {
       setSubmitting(false);
     }
@@ -114,23 +107,19 @@ const GovernorTransferView: React.FC = () => {
 
   const handleRejectDocument = async () => {
     if (!docActionModal || !docRejectMessage.trim()) {
-      alert("Please provide a rejection message");
+      Alert.warning("Validation Error", "Please provide a rejection message");
       return;
     }
     try {
       setSubmitting(true);
       await rejectDocument(docActionModal.docId, docRejectMessage);
-      alert("✗ Document rejected successfully");
+      Alert.success("Document Rejected", "Document rejected successfully");
       setDocActionModal(null);
       setDocRejectMessage("");
-      // Reload transfer data
-      if (id) {
-        const res = await getTransferForReview(id);
-        setTransfer(res.transfer);
-      }
+      mutate();
     } catch (err) {
       console.error(err);
-      alert("Failed to reject document");
+      Alert.error("Rejection Failed", "Failed to reject document");
     } finally {
       setSubmitting(false);
     }
@@ -148,12 +137,19 @@ const GovernorTransferView: React.FC = () => {
           Back to Transfers
         </button>
 
-        {loading ? (
+        {isLoading ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <div className="inline-block animate-spin mb-4">
               <FaFileAlt className="w-8 h-8 text-indigo-600" />
             </div>
             <p className="text-gray-600">Loading transfer details...</p>
+          </div>
+        ) : error ? (
+          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+            <p className="text-red-600 mb-4">Failed to load transfer details. Please try again.</p>
+            <button onClick={() => navigate(-1)} className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+              Go Back
+            </button>
           </div>
         ) : transfer ? (
           <div className="space-y-6">
@@ -188,17 +184,17 @@ const GovernorTransferView: React.FC = () => {
                       <p className="text-sm text-gray-600 font-medium">Address</p>
                       <p className="text-gray-900 font-semibold">{transfer.land?.address || "Not specified"}</p>
                     </div>
-                    {transfer.land?.latitude && transfer.land?.longitude && (
+                    {transfer.land?.centerLat && transfer.land?.centerLng && (
                       <div>
                         <p className="text-sm text-gray-600 font-medium">Coordinates</p>
-                        <p className="text-gray-900 font-mono text-sm">{transfer.land.latitude}, {transfer.land.longitude}</p>
+                        <p className="text-gray-900 font-mono text-sm">{transfer.land.centerLat}, {transfer.land.centerLng}</p>
                       </div>
                     )}
-                    {transfer.land?.squareMeters && (
+                    {transfer.land?.areaSqm && (
                       <div>
                         <p className="text-sm text-gray-600 font-medium">Size</p>
                         <p className="text-gray-900 font-semibold flex items-center gap-1">
-                          <FaRuler className="w-4 h-4" /> {transfer.land.squareMeters}m²
+                          <FaRuler className="w-4 h-4" /> {transfer.land.areaSqm}m²
                         </p>
                       </div>
                     )}
@@ -240,81 +236,193 @@ const GovernorTransferView: React.FC = () => {
               </div>
             </div>
 
+            {/* Transfer Coordinates & Survey Details */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-4">
+                <FaMap className="w-5 h-5 text-indigo-600" />
+                Transfer Coordinates & Survey Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Transfer Coordinates */}
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Transfer Location</h4>
+                  <div className="space-y-2">
+                    {transfer.transferCenterLat && transfer.transferCenterLng && (
+                      <div>
+                        <p className="text-xs text-gray-500">Center Coordinates</p>
+                        <p className="text-sm font-mono text-gray-900">{transfer.transferCenterLat}, {transfer.transferCenterLng}</p>
+                      </div>
+                    )}
+                    {transfer.transferStartPoint && (
+                      <div>
+                        <p className="text-xs text-gray-500">Start Point (UTM)</p>
+                        <p className="text-sm font-mono text-gray-900">{transfer.transferStartPoint[0]}, {transfer.transferStartPoint[1]}</p>
+                      </div>
+                    )}
+                    {transfer.transferUtmZone && (
+                      <div>
+                        <p className="text-xs text-gray-500">UTM Zone</p>
+                        <p className="text-sm font-semibold text-gray-900">{transfer.transferUtmZone}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Transfer Bearings */}
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Transfer Bearings</h4>
+                  <div className="space-y-1">
+                    {transfer.transferBearings?.map((bearing: any, index: number) => (
+                      <div key={index} className="text-sm">
+                        <span className="font-mono text-gray-600">{bearing.bearing}°</span>
+                        <span className="text-gray-500"> / </span>
+                        <span className="font-mono text-gray-600">{bearing.distance}m</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Transfer Survey Info */}
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Survey Information</h4>
+                  <div className="space-y-2">
+                    {transfer.transferSurveyType && (
+                      <div>
+                        <p className="text-xs text-gray-500">Survey Type</p>
+                        <p className="text-sm font-semibold text-gray-900">{transfer.transferSurveyType}</p>
+                      </div>
+                    )}
+                    {transfer.transferAreaSqm && (
+                      <div>
+                        <p className="text-xs text-gray-500">Transfer Area</p>
+                        <p className="text-sm font-semibold text-gray-900">{transfer.transferAreaSqm} m²</p>
+                      </div>
+                    )}
+                    {transfer.transferType && (
+                      <div>
+                        <p className="text-xs text-gray-500">Transfer Type</p>
+                        <p className="text-sm font-semibold text-gray-900">{transfer.transferType}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Transfer Coordinates Map */}
+              {transfer.transferCoordinates && transfer.transferCoordinates.length > 0 && (
+                <div className="mt-6">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Transfer Boundary Coordinates</h4>
+                  <div className="bg-gray-50 rounded-lg p-4 border">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {transfer.transferCoordinates.map((coord: number[], index: number) => (
+                        <div key={index} className="text-xs font-mono text-gray-700 bg-white px-2 py-1 rounded border">
+                          {coord[0]}, {coord[1]}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Documents Section */}
             {transfer.documents && transfer.documents.length > 0 && (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-4">
+                <h3 className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-6">
                   <FaFileAlt className="w-5 h-5 text-indigo-600" />
                   Documents ({transfer.documents.length})
                 </h3>
-                <div className="space-y-3">
-                  {transfer.documents.map((doc: any) => {
-                    const isImage = doc.url && (doc.url.includes(".png") || doc.url.includes(".jpg") || doc.url.includes(".jpeg") || doc.url.includes(".gif") || doc.url.includes("/image/"));
-                    const isPdf = doc.url && (doc.url.includes(".pdf") || doc.url.includes("/raw/"));
-                    const canView = doc.url && (isImage || isPdf);
-                    
+
+                {/* Group documents by type */}
+                {(() => {
+                  const groupedDocs = transfer.documents.reduce((acc: any, doc: any) => {
+                    const type = doc.type || 'OTHER';
+                    if (!acc[type]) acc[type] = [];
+                    acc[type].push(doc);
+                    return acc;
+                  }, {});
+
+                  return Object.entries(groupedDocs).map(([type, docs]) => {
+                    const docArray = docs as any[];
                     return (
-                      <div key={doc.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
-                        <div className="flex items-center gap-3 flex-1">
-                          {isPdf ? (
-                            <FaFilePdf className="w-5 h-5 text-red-500 flex-shrink-0" />
-                          ) : isImage ? (
-                            <FaFileImage className="w-5 h-5 text-blue-500 flex-shrink-0" />
-                          ) : (
-                            <FaFileAlt className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{doc.title || "Document"}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <p className="text-xs text-gray-500 font-mono truncate">{doc.id}</p>
-                              {doc.type && (
-                                <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded whitespace-nowrap">
-                                  {doc.type.toUpperCase().replace(/_/g, " ")}
-                                </span>
+                    <div key={type} className="mb-6 last:mb-0">
+                      <h4 className="text-md font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-200">
+                        {type.replace(/_/g, ' ').toUpperCase()} ({docArray.length})
+                      </h4>
+                      <div className="grid gap-3">
+                        {docArray.map((doc: any) => {
+                          const isImage = doc.url && (doc.url.includes(".png") || doc.url.includes(".jpg") || doc.url.includes(".jpeg") || doc.url.includes(".gif") || doc.url.includes("/image/"));
+                          const isPdf = doc.url && (doc.url.includes(".pdf") || doc.url.includes("/raw/"));
+                          const canView = doc.url && (isImage || isPdf);
+
+                          return (
+                            <div key={doc.id} className="bg-gray-50 rounded-lg border border-gray-200 p-4 hover:bg-gray-100 transition-colors">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-start gap-3 flex-1">
+                                  {isPdf ? (
+                                    <FaFilePdf className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
+                                  ) : isImage ? (
+                                    <FaFileImage className="w-6 h-6 text-blue-500 flex-shrink-0 mt-0.5" />
+                                  ) : (
+                                    <FaFileAlt className="w-6 h-6 text-gray-400 flex-shrink-0 mt-0.5" />
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-900 mb-1">{doc.title || "Document"}</p>
+                                    <p className="text-xs text-gray-500 font-mono mb-2">{doc.id}</p>
+                                    {doc.reviews && doc.reviews.length > 0 && (
+                                      <div className="text-xs text-gray-600">
+                                        <span className="font-medium">Reviews:</span> {doc.reviews.length} ({doc.reviews.filter((r: any) => r.status === 'APPROVED').length} approved)
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                                  <span className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap ${
+                                    doc.status === "APPROVED" ? "bg-green-100 text-green-700" :
+                                    doc.status === "REJECTED" ? "bg-red-100 text-red-700" :
+                                    "bg-yellow-100 text-yellow-700"
+                                  }`}>
+                                    {doc.status || "PENDING"}
+                                  </span>
+                                  {canView && (
+                                    <button
+                                      onClick={() => setPreviewDoc(doc)}
+                                      className="px-3 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors flex items-center gap-1"
+                                    >
+                                      <FaEye className="w-3 h-3" />
+                                      View
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Document Actions - Only show for pending documents */}
+                              {doc.status === "PENDING" && (
+                                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200">
+                                  <button
+                                    onClick={() => setDocActionModal({ type: "approve", docId: doc.id, docTitle: doc.title })}
+                                    className="flex-1 px-3 py-2 text-xs bg-green-600 hover:bg-green-700 text-white rounded transition-colors flex items-center justify-center gap-1"
+                                  >
+                                    <FaCheckCircle className="w-3 h-3" />
+                                    Approve
+                                  </button>
+                                  <button
+                                    onClick={() => setDocActionModal({ type: "reject", docId: doc.id, docTitle: doc.title })}
+                                    className="flex-1 px-3 py-2 text-xs bg-red-600 hover:bg-red-700 text-white rounded transition-colors flex items-center justify-center gap-1"
+                                  >
+                                    <FaTimesCircle className="w-3 h-3" />
+                                    Reject
+                                  </button>
+                                </div>
                               )}
                             </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {canView && (
-                            <button
-                              onClick={() => setPreviewDoc(doc)}
-                              className="px-3 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center gap-1"
-                            >
-                              <FaEye className="w-4 h-4" />
-                              View
-                            </button>
-                          )}
-                          {doc.status === "PENDING" && (
-                            <>
-                              <button
-                                onClick={() => setDocActionModal({ type: "approve", docId: doc.id, docTitle: doc.title })}
-                                className="px-3 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-1"
-                              >
-                                <FaCheckCircle className="w-4 h-4" />
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => setDocActionModal({ type: "reject", docId: doc.id, docTitle: doc.title })}
-                                className="px-3 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center gap-1"
-                              >
-                                <FaTimesCircle className="w-4 h-4" />
-                                Reject
-                              </button>
-                            </>
-                          )}
-                          <span className={`px-3 py-2 rounded-lg text-xs font-semibold ${
-                            doc.status === "APPROVED" ? "bg-green-100 text-green-700" :
-                            doc.status === "REJECTED" ? "bg-red-100 text-red-700" :
-                            "bg-gray-100 text-gray-700"
-                          }`}>
-                            {doc.status || "Pending"}
-                          </span>
-                        </div>
+                          );
+                        })}
                       </div>
-                    );
+                    </div>
+                  );
                   })}
-                </div>
+                )()}
               </div>
             )}
 
