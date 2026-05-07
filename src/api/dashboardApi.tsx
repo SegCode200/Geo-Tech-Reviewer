@@ -49,6 +49,25 @@ export interface ReviewerApplication {
   logs: AuditLog[];
 }
 
+export interface LandReviewTask {
+  id: string;
+  landCode?: string;
+  landStatus?: string;
+  owner?: {
+    fullName?: string;
+    email?: string;
+  };
+  state?: {
+    id: string;
+    name?: string;
+  };
+}
+
+export interface ReviewerApplicationsResponse {
+  applications: ReviewerApplication[];
+  landReviewTasks: LandReviewTask[];
+}
+
 export interface MonthlyTrend {
   month: string;
   approved: number;
@@ -113,7 +132,7 @@ export const getCofOActivityLogs = async (): Promise<AuditLog[]> => {
   return res.data;
 };
 
-export const getReviewerApplications = async (): Promise<ReviewerApplication[]> => {
+export const getReviewerApplications = async (): Promise<ReviewerApplicationsResponse> => {
   const res = await api.get("/internal-users/reviewer/applications");
   return res.data;
 };

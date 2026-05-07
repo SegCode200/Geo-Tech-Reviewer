@@ -15,7 +15,7 @@ import {
   getGovernorInboxBacklog,
   DashboardStats,
   AuditLog,
-  ReviewerApplication,
+  ReviewerApplicationsResponse,
   MonthlyTrend,
   InboxTask,
   GovernorStatusReport,
@@ -84,7 +84,7 @@ export const useCofOActivityLogs = () => {
  * @returns SWR response with applications, error, and loading state
  */
 export const useReviewerApplications = () => {
-  const { data, error, isLoading, mutate } = useSWR<ReviewerApplication[]>(
+  const { data, error, isLoading, mutate } = useSWR<ReviewerApplicationsResponse>(
     "/dashboard/applications",
     () => getReviewerApplications(),
     {
@@ -94,10 +94,10 @@ export const useReviewerApplications = () => {
     }
   );
 
-  console.log(data)
 
   return {
-    applications: data || [],
+    applications: data?.applications || [],
+    landReviewTasks: data?.landReviewTasks || [],
     error,
     isLoading,
     mutate,

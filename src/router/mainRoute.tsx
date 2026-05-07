@@ -16,6 +16,7 @@ import CofoApplications from "../pages/dashboard/cofo/CofoApplications";
 import PendingFinal from "../pages/dashboard/cofo/PendingFinal";
 import Approved from "../pages/dashboard/cofo/Approved";
 import CofoView from "../pages/dashboard/cofo/CofoView";
+import LandReview from "../pages/dashboard/cofo/LandReview";
 import Reports from "../pages/dashboard/Reports";
 import Transfers from "../pages/dashboard/Transfers";
 import TransferView from "../pages/dashboard/TransferView";
@@ -57,6 +58,7 @@ const mainRoute = createBrowserRouter([
       { path: "cofo/applications", element: <CofoApplications /> },
       { path: "cofo/pending-final", element: <PendingFinal /> },
       { path: "cofo/approved", element: <Approved /> },
+      { path: "cofo/land-review/:id", element: <LandReview /> },
       { path: "cofo/:id", element: <CofoView /> },
       { path: "approvals/:id", element: <ApprovalReview /> },
       { path: "transfers", element: <Transfers /> },

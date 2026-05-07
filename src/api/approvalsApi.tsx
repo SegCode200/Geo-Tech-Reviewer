@@ -79,13 +79,123 @@ export interface ApplicationListItem {
   logs: any[];
 }
 
-export const getApprovalApplications = async (): Promise<ApplicationListItem[]> => {
+export interface LandReviewTask {
+  id: string;
+  landCode?: string;
+  landStatus?: string;
+  owner?: {
+    fullName?: string;
+    email?: string;
+  };
+  state?: {
+    id: string;
+    name?: string;
+  };
+}
+
+export interface ReviewerApplicationsResponse {
+  applications: ApplicationListItem[];
+  landReviewTasks: LandReviewTask[];
+}
+
+export const getApprovalApplications = async (): Promise<ReviewerApplicationsResponse> => {
   const res = await api.get("/internal-users/reviewer/applications");
   return res.data;
 };
 
 export const getCofOForReview = async (id: string): Promise<ApplicationForReview> => {
   const res = await api.get(`/internal-users/review/${id}`);
+  return res.data;
+};
+
+export interface Bearing {
+  bearing: number;
+  distance: number;
+}
+
+export interface LandDocument {
+  createdAt: string;
+  documentUrl: string;
+  fileName: string;
+  id: string;
+  isActive: boolean;
+  landId: string;
+  replacedById: string | null;
+}
+
+export interface LandOwner {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  // Add other fields as needed
+}
+
+export interface LandState {
+  createdAt: string;
+  governorId: string;
+  id: string;
+  name: string;
+}
+
+export interface LandForReview {
+  id: string;
+  accuracyLevel: string;
+  address: string;
+  areaSqm: number;
+  bearings: Bearing[];
+  centerLat: number;
+  centerLng: number;
+  conflictFlags: any; // null or specific type
+  createdAt: string;
+  currentReviewerId: string;
+  documents: LandDocument[];
+  existingCofODocument: any; // null or specific type
+  existingCofOIssueDate: string;
+  existingCofONumber: string;
+  hasExistingCofO: boolean;
+  isVerified: boolean;
+  landCode: string;
+  landStatus: string;
+  latlngCoordinates: [number, number][];
+  owner: LandOwner;
+  ownerId: string;
+  ownerName: string;
+  ownershipType: string;
+  parentLandId: string | null;
+  plotNumber: string | null;
+  purpose: string;
+  requiresReviewerApproval: boolean;
+  reviewLogs: any[]; // empty array
+  startPoint: [number, number];
+  state: LandState;
+  stateId: string;
+  surveyDate: string;
+  surveyNotes: string | null;
+  surveyPlanNumber: string;
+  surveyTelephone: string;
+  surveyType: string;
+  surveyorAddress: string;
+  surveyorName: string;
+  titleType: string;
+  utmCoordinates: [number, number][];
+  utmZone: string;
+}
+
+export const getLandForReview = async (id: string): Promise<LandForReview> => {
+  const res = await api.get(`/internal-users/land-review/${id}`);
+  console.log(res.data)
+  return res.data.land;
+};
+
+export const submitLandReviewDecision = async (
+  landId: string,
+  data: {
+    action: "APPROVE" | "REJECT";
+    message?: string;
+  }
+) => {
+  const res = await api.post(`/internal-users/land-review/${landId}`, data);
   return res.data;
 };
 
